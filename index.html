@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tree ID — Faceted Filter</title>
+
+<!-- jQuery + DataTables CSS/JS from CDN -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 18px; color:#111; }
+  header { display:flex; align-items:center; gap:16px; margin-bottom:16px; }
+  header h1 { margin:0; font-size:1.25rem; }
+  .controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .control { display:flex; flex-direction:column; font-size:0.9rem; }
+  .control select { min-width:160px; padding:6px; }
+  .photo-thumb { width:64px; height:64px; object-fit:cover; border-radius:6px; }
+  .card-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px; }
+  .card { border:1px solid #e6e6e6; border-radius:8px; padding:10px; display:flex; gap:10px; align-items:flex-start; background:#fff; }
+  .card img { width:96px; height:96px; object-fit:cover; border-radius:6px; }
+  .meta { font-size:0.90rem; }
+  .muted { color:#666; font-size:0.85rem; }
+  .controls .btn { padding:8px 10px; border-radius:6px; border:1px solid #d0d0d0; background:#f9f9f9; cursor:pointer; }
+  .top-row { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+  @media (max-width:600px){ header { flex-direction:column; align-items:flex-start } .controls{ gap:8px } }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Tree_icon.svg/600px-Tree_icon.svg.png" alt="Tree" width="48" height="48" style="opacity:0.85">
+  <div>
+    <h1>Tree ID — Faceted Filter</h1>
+    <div class="muted">Filter common tree species visually by leaf, bark, fruit and region. Host this file on GitHub Pages to share.</div>
+  </div>
+</header>
+
+<section>
+  <div class="top-row">
+    <div class="controls" id="filters">
+      <div class="control">
+        <label for="f_arrangement">Leaf arrangement</label>
+        <select id="f_arrangement"><option value="">— any —</option></select>
+      </div>
+      <div class="control">
+        <label for="f_type">Leaf type</label>
+        <select id="f_type"><option value="">— any —</option></select>
+      </div>
+      <div class="control">
+        <label for="f_margin">Leaf margin</label>
+        <select id="f_margin"><option value="">— any —</option></select>
+      </div>
+      <div class="control">
+        <label for="f_shape">Leaf shape</label>
+        <select id="f_shape"><option value="">— any —</option></select>
+      </div>
+      <div class="control">
+        <label for="f_fruit">Fruit type</label>
+        <select id="f_fruit"><option value="">— any —</option></select>
+      </div>
+      <div class="control">
+        <label for="f_range">Native range</label>
+        <select id="f_range"><option value="">— any —</option></select>
+      </div>
+      <div class="control" style="align-self:end">
+        <button class="btn" id="resetFilters">Reset</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px; align-items:center;">
+      <label class="muted" for="textSearch">Search</label>
+      <input id="textSearch" placeholder="common or scientific name, notes..." style="padding:6px; min-width:200px">
+    </div>
+  </div>
+
+  <table id="speciesTable" class="display responsive nowrap" style="width:100%">
+    <thead>
+      <tr>
+        <th>Photo</th>
+        <th>Common name</th>
+        <th>Scientific name</th>
+        <th>Leaf arrangement</th>
+        <th>Leaf type</th>
+        <th>Leaf margin</th>
+        <th>Leaf shape</th>
+        <th>Fruit</th>
+        <th>Height (m)</th>
+        <th>Native range</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="gallery" class="card-grid" style="margin-top:18px"></div>
+</section>
+
+<footer style="margin-top:26px; color:#555; font-size:0.9rem;">
+  Tip: To update the dataset without editing this HTML, add a `data.csv` file (same repo) with the header shown in the documentation below — the page will try to fetch it on load and use it if present.
+</footer>
+
+<!-- jQuery + DataTables -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script>
+/*
+  Data model fields:
+  id,common_name,scientific_name,leaf_arrangement,leaf_type,leaf_margin,leaf_shape,leaf_length_mm,bark_character,fruit_type,flower_color,mature_height_m,native_range,photo_url,notes
+*/
+
+const EMBEDDED_DATA = [
+  {
+    id:1, common_name:"Red Maple", scientific_name:"Acer rubrum",
+    leaf_arrangement:"Opposite", leaf_type:"Simple", leaf_margin:"Lobed", leaf_shape:"Palmate",
+    leaf_length_mm:"50-120", bark_character:"Furrowed", fruit_type:"Samara", flower_color:"Red",
+    mature_height_m:"10-30", native_range:"Eastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/4/47/Acer_rubrum_123.jpg",
+    notes:"Common urban and forest tree; red fall color"
+  },
+  {
+    id:2, common_name:"White Oak", scientific_name:"Quercus alba",
+    leaf_arrangement:"Alternate", leaf_type:"Simple", leaf_margin:"Lobed", leaf_shape:"Lobed",
+    leaf_length_mm:"70-150", bark_character:"Plated", fruit_type:"Acorn", flower_color:"Green",
+    mature_height_m:"20-35", native_range:"Eastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/2/25/Quercus_alba_leaves.jpg",
+    notes:"Rounded lobes; deep sinuses; long-lived"
+  },
+  {
+    id:3, common_name:"Sugar Maple", scientific_name:"Acer saccharum",
+    leaf_arrangement:"Opposite", leaf_type:"Simple", leaf_margin:"Lobed", leaf_shape:"Palmate",
+    leaf_length_mm:"80-160", bark_character:"Furrowed", fruit_type:"Samara", flower_color:"Green",
+    mature_height_m:"20-35", native_range:"Northeast North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/b/bc/Acer_saccharum_leaves.jpg",
+    notes:"Brilliant fall color (orange/yellow)"
+  },
+  {
+    id:4, common_name:"Black Cherry", scientific_name:"Prunus serotina",
+    leaf_arrangement:"Alternate", leaf_type:"Simple", leaf_margin:"Serrated", leaf_shape:"Oval",
+    leaf_length_mm:"60-140", bark_character:"Furrowed/Blocky", fruit_type:"Drupe/Berry", flower_color:"White",
+    mature_height_m:"15-30", native_range:"Eastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/a/a6/Prunus_serotina_leaves.jpg",
+    notes:"Small cherries; bark breaks into scales on older trees"
+  },
+  {
+    id:5, common_name:"Eastern Redbud", scientific_name:"Cercis canadensis",
+    leaf_arrangement:"Alternate", leaf_type:"Simple", leaf_margin:"Entire", leaf_shape:"Cordate",
+    leaf_length_mm:"40-110", bark_character:"Smooth/Thin", fruit_type:"Pod", flower_color:"Pink",
+    mature_height_m:"6-9", native_range:"Eastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/7/7c/Cercis_canadensis_leaves.jpg",
+    notes:"Heart-shaped leaves; showy spring flowers on bare stems"
+  },
+  {
+    id:6, common_name:"Silver Maple", scientific_name:"Acer saccharinum",
+    leaf_arrangement:"Opposite", leaf_type:"Simple", leaf_margin:"Lobed", leaf_shape:"Palmate",
+    leaf_length_mm:"70-150", bark_character:"Furrowed/Scaly", fruit_type:"Samara", flower_color:"Green",
+    mature_height_m:"15-25", native_range:"Eastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/c/c1/Acer_saccharinum_leaf.jpg",
+    notes:"Very deeply cut lobes; fast-growing, brittle wood"
+  },
+  {
+    id:7, common_name:"American Beech", scientific_name:"Fagus grandifolia",
+    leaf_arrangement:"Alternate", leaf_type:"Simple", leaf_margin:"Serrated", leaf_shape:"Oval",
+    leaf_length_mm:"60-120", bark_character:"Smooth/Light gray", fruit_type:"Nut", flower_color:"Yellowish",
+    mature_height_m:"20-30", native_range:"Eastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/5/5f/Fagus_grandifolia_leaves.jpg",
+    notes:"Smooth gray bark; toothed leaves"
+  },
+  {
+    id:8, common_name:"White Pine", scientific_name:"Pinus strobus",
+    leaf_arrangement:"Whorled", leaf_type:"Needle", leaf_margin:"—", leaf_shape:"Needle (bundle of 5)",
+    leaf_length_mm:"80-150", bark_character:"Furrowed/Plated", fruit_type:"Cone", flower_color:"—",
+    mature_height_m:"20-40", native_range:"Northeastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/1/11/Pinus_strobus_needles.jpg",
+    notes:"Soft clusters of five needles; tall conifer"
+  },
+  {
+    id:9, common_name:"American Holly", scientific_name:"Ilex opaca",
+    leaf_arrangement:"Alternate", leaf_type:"Simple", leaf_margin:"Spiny-toothed", leaf_shape:"Elliptic",
+    leaf_length_mm:"40-100", bark_character:"Smooth/Scaly", fruit_type:"Berry", flower_color:"White",
+    mature_height_m:"9-18", native_range:"Eastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/0/00/Ilex_opaca_leaves.jpg",
+    notes:"Evergreen with glossy spiny leaves and red berries"
+  },
+  {
+    id:10, common_name:"Honey Locust", scientific_name:"Gleditsia triacanthos",
+    leaf_arrangement:"Alternate", leaf_type:"Compound", leaf_margin:"Entire/Toothed", leaf_shape:"Pinnate/Compound",
+    leaf_length_mm:"50-300", bark_character:"Thorny/Plated", fruit_type:"Legume/Pod", flower_color:"Greenish",
+    mature_height_m:"12-25", native_range:"Central/Eastern North America",
+    photo_url:"https://upload.wikimedia.org/wikipedia/commons/6/66/Gleditsia_triaconthos_leaves.jpg",
+    notes:"Compound leaves; long pods; some cultivars thornless"
+  }
+];
+
+// Utilities: populate selects and build options based on current dataset
+function uniqueValues(data, key) {
+  const s = new Set();
+  data.forEach(r => {
+    const v = r[key];
+    if (v && v.trim() !== "") {
+      // if multiple values stored separated by '|' (not used in seed), split them
+      v.split("|").map(x => x.trim()).forEach(x => { if (x) s.add(x); });
+    }
+  });
+  return Array.from(s).sort((a,b)=> a.localeCompare(b));
+}
+
+// CSV parser fallback (very small, assumes no embedded commas/newlines in fields)
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.trim());
+  const rows = [];
+  for (let i=1;i<lines.length;i++){
+    const cols = lines[i].split(",").map(c=>c.trim());
+    if (cols.length < headers.length) continue;
+    const obj = {};
+    headers.forEach((h,idx)=> obj[h] = cols[idx] || "");
+    // normalize some keys to match expected names
+    // if header names match exactly, fine.
+    rows.push(obj);
+  }
+  return rows;
+}
+
+// Try to fetch data.csv (if you commit one). Otherwise use EMBEDDED_DATA.
+async function loadData() {
+  try {
+    const resp = await fetch("data.csv");
+    if (!resp.ok) throw new Error("no csv");
+    const txt = await resp.text();
+    const parsed = parseCSV(txt);
+    if (parsed.length > 0) {
+      // convert parsed rows to the expected object shape (string keys)
+      return parsed.map((r, idx) => ({
+        id: r.id || idx+1,
+        common_name: r.common_name || r.commonName || r["Common name"] || "",
+        scientific_name: r.scientific_name || r.scientificName || r["Scientific name"] || "",
+        leaf_arrangement: r.leaf_arrangement || r.leafArrangement || r["leaf_arrangement"] || "",
+        leaf_type: r.leaf_type || r.leafType || "",
+        leaf_margin: r.leaf_margin || r.leafMargin || "",
+        leaf_shape: r.leaf_shape || r.leafShape || "",
+        leaf_length_mm: r.leaf_length_mm || r.leafLengthMM || "",
+        bark_character: r.bark_character || r.barkCharacter || "",
+        fruit_type: r.fruit_type || r.fruitType || "",
+        flower_color: r.flower_color || r.flowerColor || "",
+        mature_height_m: r.mature_height_m || r.matureHeightM || "",
+        native_range: r.native_range || r.nativeRange || "",
+        photo_url: r.photo_url || r.photoUrl || r.photo || "",
+        notes: r.notes || ""
+      }));
+    }
+    return EMBEDDED_DATA;
+  } catch(e){
+    // CSV missing or failed -> use embedded
+    return EMBEDDED_DATA;
+  }
+}
+
+let dataTable = null;
+let fullData = [];
+
+function renderGallery(filtered) {
+  const g = document.getElementById("gallery");
+  g.innerHTML = "";
+  filtered.forEach(r => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <img src="${r.photo_url||'https://via.placeholder.com/160?text=No+Image'}" alt="${r.common_name}">
+      <div style="flex:1">
+        <strong>${r.common_name}</strong> <div class="muted" style="margin-top:4px">${r.scientific_name}</div>
+        <div class="meta" style="margin-top:8px">
+          <div><strong>Leaves:</strong> ${r.leaf_arrangement} / ${r.leaf_type} / ${r.leaf_margin} / ${r.leaf_shape}</div>
+          <div><strong>Fruit:</strong> ${r.fruit_type}  <strong style="margin-left:8px">Range:</strong> ${r.native_range}</div>
+          <div class="muted" style="margin-top:6px">${r.notes || ""}</div>
+        </div>
+      </div>
+    `;
+    g.appendChild(div);
+  });
+}
+
+// custom DataTables filter uses global filter state
+$.fn.dataTable.ext.search.push(function(settings, dataRow, dataIndex){
+  // dataRow is an array of visible columns (strings)
+  // we will read values we know: columns index mapping:
+  // 0 Photo, 1 common, 2 scientific, 3 arrangement, 4 type, 5 margin, 6 shape, 7 fruit, 8 height, 9 range, 10 notes
+  const f_arr = document.getElementById("f_arrangement").value;
+  const f_type = document.getElementById("f_type").value;
+  const f_margin = document.getElementById("f_margin").value;
+  const f_shape = document.getElementById("f_shape").value;
+  const f_fruit = document.getElementById("f_fruit").value;
+  const f_range = document.getElementById("f_range").value;
+  const txt = document.getElementById("textSearch").value.trim().toLowerCase();
+
+  // check facets (if a facet has value, it must match)
+  if (f_arr && dataRow[3].toLowerCase() !== f_arr.toLowerCase()) return false;
+  if (f_type && dataRow[4].toLowerCase() !== f_type.toLowerCase()) return false;
+  if (f_margin && dataRow[5].toLowerCase() !== f_margin.toLowerCase()) return false;
+  if (f_shape && dataRow[6].toLowerCase() !== f_shape.toLowerCase()) return false;
+  if (f_fruit && dataRow[7].toLowerCase() !== f_fruit.toLowerCase()) return false;
+  if (f_range && dataRow[9].toLowerCase() !== f_range.toLowerCase()) return false;
+
+  // text search (search common, scientific, notes)
+  if (txt) {
+    const hay = (dataRow[1] + " " + dataRow[2] + " " + dataRow[10]).toLowerCase();
+    if (!hay.includes(txt)) return false;
+  }
+
+  return true;
+});
+
+async function init() {
+  fullData = await loadData();
+
+  // populate dropdowns
+  const mapping = [
+    {id:'f_arrangement', key:'leaf_arrangement'},
+    {id:'f_type', key:'leaf_type'},
+    {id:'f_margin', key:'leaf_margin'},
+    {id:'f_shape', key:'leaf_shape'},
+    {id:'f_fruit', key:'fruit_type'},
+    {id:'f_range', key:'native_range'}
+  ];
+  mapping.forEach(m => {
+    const sel = document.getElementById(m.id);
+    const vals = uniqueValues(fullData, m.key);
+    vals.forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    });
+  });
+
+  // populate DataTable
+  const tbody = $("#speciesTable tbody");
+  tbody.empty();
+  fullData.forEach(r => {
+    const photo = `<img class="photo-thumb" src="${r.photo_url||'https://via.placeholder.com/160?text=No+Image'}" alt="">`;
+    const row = `<tr>
+      <td>${photo}</td>
+      <td>${r.common_name}</td>
+      <td><em>${r.scientific_name}</em></td>
+      <td>${r.leaf_arrangement}</td>
+      <td>${r.leaf_type}</td>
+      <td>${r.leaf_margin}</td>
+      <td>${r.leaf_shape}</td>
+      <td>${r.fruit_type}</td>
+      <td>${r.mature_height_m||""}</td>
+      <td>${r.native_range||""}</td>
+      <td>${r.notes||""}</td>
+    </tr>`;
+    tbody.append(row);
+  });
+
+  dataTable = $("#speciesTable").DataTable({
+    responsive:true,
+    pageLength: 10,
+    lengthMenu: [5,10,20,50],
+    columns:[
+      { orderable:false, width:"80px" },
+      null, null, null, null, null, null, null, null, null, { orderable:false }
+    ],
+    // prevent DataTables from altering our DOM images when computing responsive
+    columnDefs: [{targets:0, searchable:false}]
+  });
+
+  // initial gallery render
+  renderGallery(fullData);
+
+  // hook filter events -> redraw datatable -> update gallery
+  const controls = [...document.querySelectorAll("#filters select"), document.getElementById("textSearch")];
+  controls.forEach(c => c.addEventListener("change", () => {
+    dataTable.draw();
+    // collect filtered rows from datatable API
+    const filteredData = [];
+    dataTable.rows({filter:'applied'}).every(function(rowIdx, tableLoop, rowLoop){
+      const row = this.data();
+      // reconstruct basic object for gallery:
+      filteredData.push({
+        photo_url: $(row[0]).find('img').attr('src'),
+        common_name: row[1],
+        scientific_name: row[2],
+        leaf_arrangement: row[3],
+        leaf_type: row[4],
+        leaf_margin: row[5],
+        leaf_shape: row[6],
+        fruit_type: row[7],
+        mature_height_m: row[8],
+        native_range: row[9],
+        notes: row[10]
+      });
+    });
+    renderGallery(filteredData);
+  }));
+
+  // text search debounce
+  let debounce = null;
+  const textSearch = document.getElementById("textSearch");
+  textSearch.addEventListener("input", () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(()=> {
+      dataTable.search('').draw(); // ensure global table search cleared (we use custom filter)
+      dataTable.draw();
+      // update gallery same as above
+      const filteredData = [];
+      dataTable.rows({filter:'applied'}).every(function(rowIdx){
+        const row = this.data();
+        filteredData.push({
+          photo_url: $(row[0]).find('img').attr('src'),
+          common_name: row[1],
+          scientific_name: row[2],
+          leaf_arrangement: row[3],
+          leaf_type: row[4],
+          leaf_margin: row[5],
+          leaf_shape: row[6],
+          fruit_type: row[7],
+          mature_height_m: row[8],
+          native_range: row[9],
+          notes: row[10]
+        });
+      });
+      renderGallery(filteredData);
+    }, 220);
+  });
+
+  document.getElementById("resetFilters").addEventListener("click", () => {
+    document.getElementById("f_arrangement").value = "";
+    document.getElementById("f_type").value = "";
+    document.getElementById("f_margin").value = "";
+    document.getElementById("f_shape").value = "";
+    document.getElementById("f_fruit").value = "";
+    document.getElementById("f_range").value = "";
+    document.getElementById("textSearch").value = "";
+    dataTable.search('').draw();
+    dataTable.draw();
+    renderGallery(fullData);
+  });
+}
+
+// kick it off
+init();
+</script>
+
+</body>
+</html>
