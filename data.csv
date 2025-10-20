@@ -1,3 +1,4 @@
-id,common _name,scientific_name,leaf_arrangement,leaf_type,leaf_margin,bark_character,fruit_type,flower_color,mature_height_m,native_range,photo_url,notes
-1,tulip tree,Liriodendron tulipifera,alternate,simple,entire,,seedhead,yellow and orange,,,,Also called tulip poplar or yellow poplar.
-2,northern spicebush,Lindera benzoin,alternate,simple,entire,,drupe,yellow,,,,
+id,common _name,scientific_name,leaf_arrangement,leaf_type,leaf_overall_shape,leaf_margin,leaf_texture,leaf_gloss,bark_character,fruit/seed,flower,acorn_features,photo_url,notes
+1,tulip tree,Liriodendron tulipifera,alternate,simple,“2 lobes at tip and 1 lobe on each side (like a silhouette of Felix the Cat’s head)”,"entire, lobed",smooth,,,seedhead,"“yellow, orange, large, tulip-shaped”",,,Also called tulip poplar or yellow poplar.
+2,northern spicebush,Lindera benzoin,alternate,simple,,entire,,,,drupe,yellow,,,
+3,wafer ash,Ptelea trifoliata,alternate,trifoliate,leaflets elliptical or ovate,entire (leaflets),smooth,medium to high,,"“samara, disc-shaped”","“white, greenish”",,,Also called hoptree or stinking ash.
